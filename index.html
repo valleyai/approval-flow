@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 초안, 규정 검사, 승인 발송 자동화 데모</title>
+<meta name="description" content="문의 답장과 병원 블로그 글을 AI가 초안으로 쓰고, 광고 규정 표현을 검사한 뒤 사람이 승인해 발송하는 자동화 데모. 모든 데이터는 가상 예시입니다.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--bg:#F5F6F8;--panel:#fff;--line:#E5E7EB;--line2:#EFF1F4;--ink:#141821;--ink2:#4B5363;--ink3:#8B93A1;--pri:#0F766E;--pri-weak:#E6F4F2;--red:#C8372D;--red-weak:#FCEBEA;--amber:#A86B12;--amber-weak:#FCF3E2;--blue:#2457C5;--blue-weak:#EAF0FC}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{font-family:Pretendard,-apple-system,"Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;letter-spacing:-.01em}
+button{font:inherit;cursor:pointer}
+.top{height:64px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 28px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+.logo i{width:26px;height:26px;border-radius:7px;background:var(--pri);display:inline-block;position:relative}
+.logo i:after{content:"";position:absolute;left:7px;top:7px;width:12px;height:12px;border:2.5px solid #fff;border-radius:50%;border-right-color:transparent}
+.seg{display:flex;background:#EEF0F3;border-radius:9px;padding:3px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:7px;color:var(--ink2);font-size:13px}
+.seg button.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.demo{margin-left:auto;font-size:12px;color:var(--amber);background:var(--amber-weak);padding:5px 10px;border-radius:6px}
+.wrap{padding:20px 28px 32px}
+.flowbar{display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.fb{padding:14px 18px;border-left:1px solid var(--line2);position:relative}
+.fb:first-child{border-left:0}
+.fb .n{font-size:11.5px;color:var(--ink3)}
+.fb .t{font-weight:700;margin-top:3px}
+.fb .c{position:absolute;right:16px;top:16px;font-size:20px;font-weight:700}
+.fb.who-ai .t:after{content:"AI";margin-left:6px;font-size:10px;color:var(--blue);background:var(--blue-weak);padding:2px 5px;border-radius:4px;vertical-align:2px}
+.fb.who-me .t:after{content:"사람";margin-left:6px;font-size:10px;color:var(--pri);background:var(--pri-weak);padding:2px 5px;border-radius:4px;vertical-align:2px}
+.grid{display:grid;grid-template-columns:360px 1fr 340px;gap:16px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.ch{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line2)}
+.ch h2{font-size:15px;margin:0}.ch .s{margin-left:auto;font-size:12px;color:var(--ink3)}
+.item{padding:13px 16px;border-bottom:1px solid var(--line2);cursor:pointer}
+.item:last-child{border-bottom:0}
+.item.sel{background:var(--pri-weak)}
+.item .r1{display:flex;align-items:center;gap:8px}
+.item b{font-size:14px}.item .src{font-size:11.5px;color:var(--ink3)}
+.item .p{color:var(--ink2);font-size:13px;margin-top:5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pill{margin-left:auto;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:5px;white-space:nowrap}
+.p-draft{background:var(--blue-weak);color:var(--blue)}.p-flag{background:var(--red-weak);color:var(--red)}.p-wait{background:var(--amber-weak);color:var(--amber)}.p-sent{background:#EEF0F3;color:var(--ink3)}
+.ed{padding:18px 20px}
+.ed .meta{font-size:12.5px;color:var(--ink3);margin-bottom:12px}
+.lbl{font-size:12.5px;color:var(--ink3);font-weight:600;margin:14px 0 8px;display:flex;align-items:center;gap:6px}
+.src-box{background:#F8F9FA;border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--ink2);line-height:1.65}
+.doc{border:1px solid var(--line);border-radius:10px;padding:16px 18px;line-height:1.8;font-size:14.5px;white-space:pre-wrap;min-height:200px}
+.doc h4{margin:0 0 8px;font-size:17px}
+mark{background:var(--red-weak);color:var(--red);border-bottom:2px solid var(--red);padding:0 2px;border-radius:2px}
+mark.fixed{background:var(--pri-weak);color:var(--pri);border-bottom-color:var(--pri)}
+.acts{display:flex;gap:8px;margin-top:14px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 14px;font-size:13px}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.chk{padding:14px 16px;border-bottom:1px solid var(--line2)}
+.chk:last-child{border-bottom:0}
+.chk .w{display:flex;align-items:center;gap:8px;font-weight:600}
+.chk .w s{color:var(--red);text-decoration:none;background:var(--red-weak);padding:1px 6px;border-radius:4px}
+.chk .why{font-size:12.5px;color:var(--ink2);margin-top:6px;line-height:1.55}
+.chk .sug{font-size:12.5px;margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.chk .sug button{border:1px solid var(--pri);color:var(--pri);background:#fff;border-radius:14px;padding:3px 10px;font-size:12px}
+.ok{padding:22px 16px;text-align:center;color:var(--pri);font-weight:600}
+.rule{padding:12px 16px;font-size:12px;color:var(--ink3);line-height:1.6;border-top:1px solid var(--line2)}
+.log{padding:6px 0}
+.log div{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:7px 16px;font-size:12.5px;color:var(--ink2)}
+.log span{color:var(--ink3)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;opacity:0;transition:opacity .2s}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo"><i></i>초안 승인함</div>
+  <div class="seg" id="seg"><button data-m="reply">문의 답장</button><button data-m="blog">병원 블로그 글</button></div>
+  <span class="demo">예시 화면 / 가상 데이터</span>
+</header>
+<div class="wrap">
+  <div class="flowbar" id="flow"></div>
+  <div class="grid">
+    <div class="card"><div class="ch"><h2 id="listTitle"></h2><span class="s" id="listSub"></span></div><div id="list"></div></div>
+    <div class="card"><div class="ed" id="ed"></div></div>
+    <div>
+      <div class="card"><div class="ch"><h2>규정 표현 검사</h2><span class="s" id="chkSub"></span></div><div id="chk"></div><div class="rule" id="rule"></div></div>
+      <div class="card" style="margin-top:16px"><div class="ch"><h2>처리 기록</h2></div><div class="log" id="log"></div></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const RULES = {
+  reply: [
+    {k:'무조건', w:'무조건 가능합니다', why:'결과를 단정하는 표현은 오해를 부를 수 있습니다.', sug:['범위를 확인한 뒤 확정해 드리겠습니다']},
+    {k:'최저가', w:'최저가로 맞춰 드리겠습니다', why:'근거 없는 비교 우위 표현입니다.', sug:['범위를 정한 뒤 견적을 드리겠습니다']},
+    {k:'카톡으로', w:'카톡으로', why:'플랫폼 밖 연락 유도는 거래 규정에 걸릴 수 있습니다.', sug:['이 채팅에서']}
+  ],
+  blog: [
+    {k:'지역 1위, 최고의', w:'지역 1위 장비로 최고의 결과를 드리며', why:'객관적 근거 없는 순위와 최상급 표현은 의료광고에서 쓰지 않습니다.', sug:['흉터 유형에 맞는 장비를 골라 쓰며']},
+    {k:'부작용 없는', w:'부작용 없는 레이저로', why:'부작용 가능성을 부정하는 표현은 의료광고에서 쓰지 않습니다.', sug:['시술 전 주의사항과 부작용을 함께 설명드린 뒤']},
+    {k:'완벽하게', w:'흉터를 완벽하게 정리합니다', why:'치료 결과를 단정하는 표현입니다.', sug:['흉터 개선을 목표로 관리합니다']},
+    {k:'할인 이벤트', w:'이번 달 할인 이벤트도 진행 중입니다.', why:'비급여 진료비 할인 표현은 심의 대상이 될 수 있습니다.', sug:['비급여 진료비는 홈페이지 안내 페이지에서 확인하실 수 있습니다.']}
+  ]
+};
+const DATA = {
+  reply: {
+    title:'답장 초안', sub:'메시지 4건',
+    items:[
+      {id:1, who:'고객 A', src:'외부 견적 플랫폼', st:'flag', time:'10:42',
+       in:'홈페이지 리뉴얼 견적 문의드립니다. 기존 사이트가 오래돼서 모바일에서 깨집니다. 3주 안에 가능할까요?',
+       title:'', body:'안녕하세요, 문의 감사합니다.\n기존 사이트를 확인해 보니 모바일 화면이 깨지는 원인은 고정 폭 레이아웃 때문으로 보입니다. 3주 일정은 무조건 가능합니다. 최저가로 맞춰 드리겠습니다.\n자세한 내용은 카톡으로 이야기 나누면 좋겠습니다.'},
+      {id:2, who:'고객 B', src:'외부 견적 플랫폼', st:'draft', time:'10:15',
+       in:'쇼핑몰 주문 데이터를 매일 엑셀로 정리하는데 자동화가 될까요?',
+       title:'', body:'안녕하세요, 문의 감사합니다.\n주문 데이터를 내려받는 곳과 엑셀 양식을 알려 주시면 자동화 범위를 확인해 드리겠습니다. 보통 매일 정해진 시간에 정리된 파일이 메일로 오도록 만듭니다.'},
+      {id:3, who:'고객 C', src:'홈페이지 문의', st:'wait', time:'09:30',
+       in:'상담 챗봇 데모를 먼저 볼 수 있나요?',
+       title:'', body:'안녕하세요, 데모 화면 링크를 보내드립니다. 업종을 바꿔 가며 눌러 보실 수 있습니다. 궁금하신 점은 이 채팅으로 남겨 주세요.'},
+      {id:4, who:'고객 D', src:'외부 견적 플랫폼', st:'sent', time:'어제',
+       in:'작업 기간이 얼마나 걸리나요?', title:'', body:'범위에 따라 2주에서 4주 정도 걸립니다. 범위를 정리해 주시면 일정을 확정해 드리겠습니다.'}
+    ]
+  },
+  blog: {
+    title:'블로그 글 초안', sub:'이번 주 3편',
+    items:[
+      {id:1, who:'여드름 흉터 관리 안내', src:'맑은 피부과의원(예시)', st:'flag', time:'월 09:00',
+       in:'키워드: 여드름 흉터 / 진료 메모: 흉터 유형 3가지, 레이저 병행, 회복 기간 안내',
+       title:'여드름 흉터, 유형부터 확인해야 하는 이유', body:'여드름 흉터는 패인 모양에 따라 관리 방법이 달라집니다.\n저희 의원은 지역 1위 장비로 최고의 결과를 드리며, 부작용 없는 레이저로 흉터를 완벽하게 정리합니다.\n이번 달 할인 이벤트도 진행 중입니다.\n흉터 유형과 피부 상태에 따라 횟수와 회복 기간이 달라지니 진료 후 결정하시길 권합니다.'},
+      {id:2, who:'레이저 후 관리 방법', src:'맑은 피부과의원(예시)', st:'draft', time:'수 09:00',
+       in:'키워드: 레이저 후 관리 / 진료 메모: 보습, 자외선 차단, 붉은기 지속 시 내원',
+       title:'레이저 시술 후 일주일, 이렇게 관리하세요', body:'시술 후 며칠은 피부가 예민해질 수 있습니다.\n보습과 자외선 차단을 꾸준히 해 주시고, 붉은기나 따가움이 오래 가면 내원해 의료진과 상담하세요.'},
+      {id:3, who:'첫 방문 전 준비할 것', src:'맑은 피부과의원(예시)', st:'sent', time:'지난주',
+       in:'키워드: 피부과 첫 방문', title:'피부과 첫 방문 전에 준비하면 좋은 것', body:'복용 중인 약과 이전 시술 기록을 알려 주시면 상담이 빨라집니다.'}
+    ]
+  }
+};
+let mode='reply', sel=1;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const pill={draft:['AI 초안','p-draft'],flag:['수정 필요','p-flag'],wait:['승인 대기','p-wait'],sent:['발송됨','p-sent']};
+const logs={reply:[['10:42','외부 견적 플랫폼에서 새 메시지 수신'],['10:42','AI 요약과 답장 초안 생성'],['10:42','규정 표현 3건 발견, 담당자에게 알림'],['09:31','고객 C 답장 승인 대기']],blog:[['월 08:50','진료 메모로 초안 생성'],['월 08:51','의료광고 표현 4건 발견, 원장님께 알림'],['지난 금','원장님 확인 후 발행 예약'],['지난 월','블로그 발행 완료']]};
+function found(it){ return RULES[mode].filter(r=>(it.title+' '+it.body).includes(r.w)); }
+function hl(t){ let s=esc(t); RULES[mode].forEach(r=>{ s=s.split(esc(r.w)).join(`<mark>${esc(r.w)}</mark>`); }); return s; }
+function toast(t){ const e=$('#toast'); e.textContent=t; e.classList.add('on'); setTimeout(()=>e.classList.remove('on'),1800); }
+function render(){
+  const d=DATA[mode]; document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.m===mode));
+  d.items.forEach(it=>{ if(it.st!=='sent'&&it.st!=='wait') it.st = found(it).length?'flag':'draft'; });
+  const cnt=s=>d.items.filter(i=>i.st===s).length;
+  $('#flow').innerHTML=[['1','들어온 요청',d.items.length,''],['2','AI 초안 작성',cnt('draft')+cnt('flag'),'who-ai'],['3','규정 표현 검사',cnt('flag'),'who-ai'],['4','사람이 확인하고 승인',cnt('wait'),'who-me'],['5','발송/발행',cnt('sent'),'']].map(([n,t,c,k])=>`<div class="fb ${k}"><div class="n">${n}단계</div><div class="t">${t}</div><div class="c">${c}</div></div>`).join('');
+  $('#listTitle').textContent=d.title; $('#listSub').textContent=d.sub;
+  $('#list').innerHTML=d.items.map(it=>`<div class="item ${it.id===sel?'sel':''}" data-id="${it.id}"><div class="r1"><b>${esc(it.who)}</b><span class="src">${esc(it.src)}</span><span class="pill ${pill[it.st][1]}">${pill[it.st][0]}</span></div><div class="p">${esc(it.in)}</div></div>`).join('');
+  const it=d.items.find(i=>i.id===sel)||d.items[0]; sel=it.id; const f=found(it);
+  $('#ed').innerHTML=`<div class="meta">${esc(it.src)} / ${esc(it.time)}</div>
+    <div class="lbl">${mode==='reply'?'고객이 보낸 메시지':'원장님 진료 메모'}</div><div class="src-box">${esc(it.in)}</div>
+    <div class="lbl"><span style="font-size:10px;color:var(--blue);background:var(--blue-weak);padding:2px 5px;border-radius:4px">AI</span>${mode==='reply'?'답장 초안':'블로그 글 초안'}</div>
+    <div class="doc" id="doc" contenteditable="${it.st!=='sent'}">${it.title?`<h4>${hl(it.title)}</h4>`:''}${hl(it.body)}</div>
+    <div class="acts"><button class="btn pri" id="ap" ${f.length||it.st==='sent'?'disabled':''}>${it.st==='wait'?'승인하고 발송':'확인 완료, 승인 요청'}</button><button class="btn" id="re">초안 다시 쓰기</button></div>
+    <div class="meta" style="margin-top:10px">규정 표현이 남아 있으면 승인 버튼이 잠깁니다. 발송은 사람이 승인한 뒤에만 됩니다.</div>`;
+  $('#chkSub').textContent=f.length?`${f.length}건 발견`:'문제 없음';
+  $('#chk').innerHTML=f.length?f.map(r=>`<div class="chk"><div class="w"><s>${esc(r.k)}</s></div><div class="why" style="color:var(--ink3)">문장: ${esc(r.w)}</div><div class="why">${esc(r.why)}</div><div class="sug">바꿀 말: ${r.sug.map(s=>`<button data-w="${esc(r.w)}" data-s="${esc(s)}">${esc(s)}</button>`).join('')}</div></div>`).join(''):`<div class="ok">걸리는 표현이 없습니다</div>`;
+  $('#rule').textContent= mode==='reply' ? '검사 기준: 결과 단정, 근거 없는 수치와 비교, 플랫폼 밖 연락 유도. 기준 단어는 사업장에 맞게 바꿀 수 있습니다.' : '검사 기준: 의료법 제56조 의료광고 금지 유형을 참고한 예시 목록입니다. 실제 적용 전 사업장 기준과 심의 기준으로 다시 맞춥니다.';
+  $('#log').innerHTML=logs[mode].map(([t,x])=>`<div><span>${esc(t)}</span>${esc(x)}</div>`).join('');
+  bind();
+}
+function bind(){
+  document.querySelectorAll('.item').forEach(e=>e.onclick=()=>{ sel=+e.dataset.id; render(); });
+  document.querySelectorAll('.sug button').forEach(b=>b.onclick=()=>{ const it=DATA[mode].items.find(i=>i.id===sel); it.body=it.body.split(b.dataset.w).join(b.dataset.s); it.title=it.title.split(b.dataset.w).join(b.dataset.s); toast('바꿨습니다'); render(); });
+  const ap=$('#ap'); if(ap) ap.onclick=()=>{ const it=DATA[mode].items.find(i=>i.id===sel); if(it.st==='wait'){ it.st='sent'; toast('승인 후 발송했습니다 (예시)'); } else { it.st='wait'; toast('승인 요청을 보냈습니다 (예시)'); } render(); };
+  const re=$('#re'); if(re) re.onclick=()=>toast('초안을 다시 썼습니다 (예시)');
+}
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{ mode=b.dataset.m; sel=1; render(); });
+const h=location.hash.replace('#','').split('/'); if(DATA[h[0]]) mode=h[0]; if(h[1]) sel=+h[1];
+window.addEventListener('hashchange',()=>{ const h=location.hash.replace('#','').split('/'); if(DATA[h[0]]) mode=h[0]; if(h[1]) sel=+h[1]; render(); });
+render();
+</script>
+</body>
+</html>
